@@ -45,10 +45,20 @@ defmodule LeaderboardTest do
     assert Leaderboard.lookup(@table, "value2") == {40, "bbb"}
   end
 
+  test "match order" do
+    {:ok, _pid} = Leaderboard.start_link(@table)
+    Leaderboard.insert(@table, 100, 1)
+    Leaderboard.insert(@table, 101, 2)
+    Leaderboard.insert(@table, 101, 3)
+    match_spec = [{{{101, :"$1"}}, [], [:"$1"]}]
+    assert Leaderboard.match(@table, match_spec, :descend) == [3, 2]
+    assert Leaderboard.match(@table, match_spec, :ascend) == [2, 3]
+  end
+
   test "select order" do
     {:ok, _pid} = Leaderboard.start_link(@table)
-    assert Leaderboard.select(@table, :descend) == nil
-    assert Leaderboard.select(@table, :ascend) == nil
+    assert Leaderboard.select(@table, :descend) == []
+    assert Leaderboard.select(@table, :ascend) == []
     Leaderboard.insert(@table, {"aaa", 1}, "v1")
     Leaderboard.insert(@table, {"aax", 2}, "v3")
     Leaderboard.insert(@table, {"aaa", 2}, "v2")
@@ -60,8 +70,8 @@ defmodule LeaderboardTest do
 
   test "select single" do
     {:ok, _pid} = Leaderboard.start_link(@table)
-    assert Leaderboard.select(@table, :descend, 1) == nil
-    assert Leaderboard.select(@table, :ascend, 1) == nil
+    assert Leaderboard.select(@table, :descend, 1) == []
+    assert Leaderboard.select(@table, :ascend, 1) == []
     Leaderboard.insert(@table, 200, :foo)
     Leaderboard.insert(@table, 100, :bar)
     assert Leaderboard.select(@table, :ascend, 1) == [{100, :bar}]
@@ -70,8 +80,8 @@ defmodule LeaderboardTest do
 
   test "multi select" do
     {:ok, _pid} = Leaderboard.start_link(@table)
-    assert Leaderboard.select(@table, :descend, :all) == nil
-    assert Leaderboard.select(@table, :ascend, 100) == nil
+    assert Leaderboard.select(@table, :descend, :all) == []
+    assert Leaderboard.select(@table, :ascend, 100) == []
     Leaderboard.insert(@table, {"aax", 2}, "v3")
     Leaderboard.insert(@table, {"aaa", 1}, "v1")
     Leaderboard.insert(@table, {"aaa", 2}, "v2")

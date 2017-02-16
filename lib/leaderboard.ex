@@ -23,8 +23,16 @@ defmodule Leaderboard do
     Leaderboard.Table.lookup(table_name, value)
   end
 
+  def match(table_name, match_spec, order) do
+    Leaderboard.Table.match(table_name, match_spec, order, :all)
+  end
+
+  def match(table_name, match_spec, order, limit) do
+    Leaderboard.Table.match(table_name, match_spec, order, limit)
+  end
+
   def select(table_name, order) do
-    select(table_name, order, :all)
+    Leaderboard.Table.select(table_name, order, :all)
   end
 
   def select(table_name, order, limit) do
@@ -60,6 +68,7 @@ defmodule Leaderboard.Table do
   @moduledoc false
 
   @server_key :"$server_pid"
+  @match_spec_all [{{:"$1"}, [], [:"$1"]}]
 
   def init_score_table(value_table) do
     table_name = score_table_name(value_table)
@@ -105,29 +114,17 @@ defmodule Leaderboard.Table do
     end
   end
 
+  def match(value_table, match_spec, order, limit) do
+    score_table = score_table_name(value_table)
+    perform_match(score_table, match_spec, order, limit)
+  end
+
   def select(value_table, order, 1) do
     score_table = score_table_name(value_table)
-    fun = single_select_function(order)
-    case fun.(score_table) do
-      {_score, _value} = record -> [record]
-      :"$end_of_table" -> nil
-    end
+    perform_single_select(score_table, order)
   end
   def select(value_table, order, limit) do
-    score_table = score_table_name(value_table)
-    fun = multi_select_function(order, limit)
-    match = [{{:"$1"}, [], [:"$1"]}]
-    if limit == :all do
-      case fun.(score_table, match) do
-        [] -> nil
-        records -> records
-      end
-    else
-      case fun.(score_table, match, limit) do
-        {records, _cont} -> records
-        :"$end_of_table" -> nil
-      end
-    end
+    match(value_table, @match_spec_all, order, limit)
   end
 
   def size(value_table) do
@@ -139,11 +136,36 @@ defmodule Leaderboard.Table do
     Module.concat(value_table, "Score")
   end
 
-  defp single_select_function(:descend), do: &:ets.last/1
-  defp single_select_function(:ascend), do: &:ets.first/1
+  defp perform_single_select(table, :descend) do
+    :ets.last(table)
+    |> normalize_single_select_result
+  end
+  defp perform_single_select(table, :ascend) do
+    :ets.first(table)
+    |> normalize_single_select_result
+  end
 
-  defp multi_select_function(:descend, :all), do: &:ets.select_reverse/2
-  defp multi_select_function(:descend, _), do: &:ets.select_reverse/3
-  defp multi_select_function(:ascend, :all), do: &:ets.select/2
-  defp multi_select_function(:ascend, _), do: &:ets.select/3
+  defp normalize_single_select_result({_score, _value} = record), do: [record]
+  defp normalize_single_select_result(_), do: []
+
+  defp perform_match(table, match_spec, :descend, :all) do
+    :ets.select_reverse(table, match_spec)
+    |> normalize_match_result
+  end
+  defp perform_match(table, match_spec, :descend, limit) do
+    :ets.select_reverse(table, match_spec, limit)
+    |> normalize_match_result
+  end
+  defp perform_match(table, match_spec, :ascend, :all) do
+    :ets.select(table, match_spec)
+    |> normalize_match_result
+  end
+  defp perform_match(table, match_spec, :ascend, limit) do
+    :ets.select(table, match_spec, limit)
+    |> normalize_match_result
+  end
+
+  defp normalize_match_result({records, _cont}), do: records
+  defp normalize_match_result(records) when is_list(records), do: records
+  defp normalize_match_result(_), do: []
 end
