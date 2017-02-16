@@ -173,32 +173,38 @@ defmodule Leaderboard.Table do
   end
 
   defp perform_single_select(table, :descend) do
-    :ets.last(table)
-    |> single_select_result
+    table
+    |> :ets.last()
+    |> single_select_result()
   end
   defp perform_single_select(table, :ascend) do
-    :ets.first(table)
-    |> single_select_result
+    table
+    |> :ets.first()
+    |> single_select_result()
   end
 
   defp single_select_result({_score, _value} = record), do: [record]
   defp single_select_result(_), do: []
 
   defp perform_match(table, match_spec, :descend, :all) do
-    :ets.select_reverse(table, match_spec)
-    |> match_result
+    table
+    |> :ets.select_reverse(match_spec)
+    |> match_result()
   end
   defp perform_match(table, match_spec, :descend, limit) do
-    :ets.select_reverse(table, match_spec, limit)
-    |> match_result
+    table
+    |> :ets.select_reverse(match_spec, limit)
+    |> match_result()
   end
   defp perform_match(table, match_spec, :ascend, :all) do
-    :ets.select(table, match_spec)
-    |> match_result
+    table
+    |> :ets.select(match_spec)
+    |> match_result()
   end
   defp perform_match(table, match_spec, :ascend, limit) do
-    :ets.select(table, match_spec, limit)
-    |> match_result
+    table
+    |> :ets.select(match_spec, limit)
+    |> match_result()
   end
 
   defp match_result({records, _cont}), do: records
