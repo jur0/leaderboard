@@ -5,40 +5,57 @@ defmodule Leaderboard do
 
   use GenServer
 
+  @type table_name :: atom
+
+  @type match_spec :: Leaderboard.Table.match_spec
+
+  @type order :: Leaderboard.Table.order
+
+  @type limit :: Leaderboard.Table.limit
+
+  @spec start_link(table_name, GenServer.options) :: GenServer.on_start
   def start_link(table_name, options \\ []) do
     GenServer.start_link(__MODULE__, [table_name], options)
   end
 
+  @spec delete(table_name, term) :: boolean
   def delete(table_name, value) do
     server = Leaderboard.Table.server_pid(table_name)
     GenServer.call(server, {:delete, value})
   end
 
+  @spec insert(table_name, term, term) :: :ok
   def insert(table_name, score, value) do
     server = Leaderboard.Table.server_pid(table_name)
     GenServer.call(server, {:insert, score, value})
   end
 
+  @spec lookup(table_name, term) :: term | nil
   def lookup(table_name, value) do
     Leaderboard.Table.lookup(table_name, value)
   end
 
+  @spec match(table_name, match_spec, order) :: [term]
   def match(table_name, match_spec, order) do
     Leaderboard.Table.match(table_name, match_spec, order, :all)
   end
 
+  @spec match(table_name, match_spec, order, limit) :: [term]
   def match(table_name, match_spec, order, limit) do
     Leaderboard.Table.match(table_name, match_spec, order, limit)
   end
 
+  @spec select(table_name, order) :: [term]
   def select(table_name, order) do
     Leaderboard.Table.select(table_name, order, :all)
   end
 
+  @spec select(table_name, order, limit) :: [term]
   def select(table_name, order, limit) do
     Leaderboard.Table.select(table_name, order, limit)
   end
 
+  @spec size(table_name) :: pos_integer
   def size(table_name) do
     Leaderboard.Table.size(table_name)
   end
@@ -70,12 +87,24 @@ defmodule Leaderboard.Table do
   @server_key :"$server_pid"
   @match_spec_all [{{:"$1"}, [], [:"$1"]}]
 
+  @type score_table :: atom
+
+  @type value_table :: atom
+
+  @type match_spec :: :ets.match_spec
+
+  @type order :: :ascend | :descend
+
+  @type limit :: pos_integer | :all
+
+  @spec init_score_table(value_table) :: score_table
   def init_score_table(value_table) do
     table_name = score_table_name(value_table)
     :ets.new(table_name, [:ordered_set, :protected, :named_table,
                           read_concurrency: true])
   end
 
+  @spec init_value_table(value_table, pid) :: value_table
   def init_value_table(value_table, server_pid) do
     :ets.new(value_table, [:set, :protected, :named_table,
                            read_concurrency: true])
@@ -83,11 +112,13 @@ defmodule Leaderboard.Table do
     value_table
   end
 
+  @spec server_pid(value_table) :: pid
   def server_pid(value_table) do
     [{@server_key, pid}] = :ets.lookup(value_table, @server_key)
     pid
   end
 
+  @spec delete(term, score_table, value_table) :: boolean
   def delete(value, score_table, value_table) do
     case :ets.lookup(value_table, value) do
       [{^value, score}] ->
@@ -99,6 +130,7 @@ defmodule Leaderboard.Table do
     end
   end
 
+  @spec insert(term, term, score_table, value_table) :: true
   def insert(score, value, score_table, value_table) do
     # Score table has only key value which is {score, value}. It has type
     # :ordered set, so all keys must be unique. If just score was in the key
@@ -107,6 +139,7 @@ defmodule Leaderboard.Table do
     :ets.insert(value_table, {value, score})
   end
 
+  @spec lookup(value_table, term) :: term | nil
   def lookup(value_table, value) do
     case :ets.lookup(value_table, value) do
       [{^value, score}] -> score
@@ -114,11 +147,13 @@ defmodule Leaderboard.Table do
     end
   end
 
+  @spec match(value_table, match_spec, order, limit) :: [term]
   def match(value_table, match_spec, order, limit) do
     score_table = score_table_name(value_table)
     perform_match(score_table, match_spec, order, limit)
   end
 
+  @spec select(value_table, order, limit) :: [term]
   def select(value_table, order, 1) do
     score_table = score_table_name(value_table)
     perform_single_select(score_table, order)
@@ -127,6 +162,7 @@ defmodule Leaderboard.Table do
     match(value_table, @match_spec_all, order, limit)
   end
 
+  @spec size(value_table) :: non_neg_integer
   def size(value_table) do
     :ets.info(value_table, :size) - 1
   end
@@ -138,34 +174,34 @@ defmodule Leaderboard.Table do
 
   defp perform_single_select(table, :descend) do
     :ets.last(table)
-    |> normalize_single_select_result
+    |> single_select_result
   end
   defp perform_single_select(table, :ascend) do
     :ets.first(table)
-    |> normalize_single_select_result
+    |> single_select_result
   end
 
-  defp normalize_single_select_result({_score, _value} = record), do: [record]
-  defp normalize_single_select_result(_), do: []
+  defp single_select_result({_score, _value} = record), do: [record]
+  defp single_select_result(_), do: []
 
   defp perform_match(table, match_spec, :descend, :all) do
     :ets.select_reverse(table, match_spec)
-    |> normalize_match_result
+    |> match_result
   end
   defp perform_match(table, match_spec, :descend, limit) do
     :ets.select_reverse(table, match_spec, limit)
-    |> normalize_match_result
+    |> match_result
   end
   defp perform_match(table, match_spec, :ascend, :all) do
     :ets.select(table, match_spec)
-    |> normalize_match_result
+    |> match_result
   end
   defp perform_match(table, match_spec, :ascend, limit) do
     :ets.select(table, match_spec, limit)
-    |> normalize_match_result
+    |> match_result
   end
 
-  defp normalize_match_result({records, _cont}), do: records
-  defp normalize_match_result(records) when is_list(records), do: records
-  defp normalize_match_result(_), do: []
+  defp match_result({records, _cont}), do: records
+  defp match_result(records) when is_list(records), do: records
+  defp match_result(_), do: []
 end
