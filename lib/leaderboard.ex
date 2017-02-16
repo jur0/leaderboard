@@ -13,6 +13,11 @@ defmodule Leaderboard do
 
   @type limit :: Leaderboard.Table.limit
 
+  @spec start(table_name, GenServer.options) :: GenServer.on_start
+  def start(table_name, options \\ []) do
+    GenServer.start(__MODULE__, [table_name], options)
+  end
+
   @spec start_link(table_name, GenServer.options) :: GenServer.on_start
   def start_link(table_name, options \\ []) do
     GenServer.start_link(__MODULE__, [table_name], options)
