@@ -1,45 +1,43 @@
 defmodule Leaderboard do
   @moduledoc ~S"""
-  The implementation of leaderboard (rank table). It associates a key
-  with a score and orders these records based on the score. The score
-  can be any term. If the score is a different term in different records,
-  the following order is defined:
+  The implementation of leaderboard (rank table) based on ETS tables.
 
-    number < atom < reference < function < port < pid < tuple < map < list < bitstring
+  It associates a key with a score and orders these records according to the
+  score. The score can be any term.
 
-  The leaderboard provides an API for inserting and deleting records as well as
-  functions for reading records in defined order.
+  The leaderboard provides an API for inserting and deleting records as well
+  as functions for reading records in defined order.
 
   ## Usage
 
   Once the leaderboard is started using `Leaderboard.start_link/2` with
-  a unique name of a table, it can be used to store records and read them:
+  a unique name of the table, it can be used to store and read records:
 
-    {:ok, _pid} = Leaderboard.start_link(Leaderboad.Score)
-    Leaderboard.insert(Leaderboard.Score, 1, "key1")
-    Leaderboard.insert(Leaderboard.Score, 3, "key3")
-    Leaderboard.insert(Leaderboard.Score, 2, "key2")
-    Leaderboard.select(Leaderboard.Score, :descend, 2)
-    #=> [{3, "key3"}, {2, "key2"}]
-    Leaderboard.select(Leaderboard.Score, :ascend, 2)
-    #=> [{1, "key1"}, {2, "key2"}]
+      {:ok, _pid} = Leaderboard.start_link(Leaderboad.Score)
+      Leaderboard.insert(Leaderboard.Score, 1, "key1")
+      Leaderboard.insert(Leaderboard.Score, 3, "key3")
+      Leaderboard.insert(Leaderboard.Score, 2, "key2")
+      Leaderboard.select(Leaderboard.Score, :descend, 2)
+      #=> [{3, "key3"}, {2, "key2"}]
+      Leaderboard.select(Leaderboard.Score, :ascend, 2)
+      #=> [{1, "key1"}, {2, "key2"}]
 
   Usually, the leaderboard is started as a part of a supervision tree:
 
-    worker(Leaderboard, [Leaderboard.Score])
+      worker(Leaderboard, [Leaderboard.Score])
 
   When a key is already present and it is inserted again, the score associated
   with the given key gets updated (`insert/3` works as update function as
   well).
 
   Note that all the write operations such as `insert/3` and `delete/2` (as
-  opposed to the read operations) are serialised via the `GenServer`.
+  opposed to the read operations) are serialised via the `GenServer` process.
   """
 
   use GenServer
 
   @typedoc """
-  Name of (key) ETS table
+  Name of the leaderboard
   """
   @type table_name :: atom
 
@@ -84,8 +82,9 @@ defmodule Leaderboard do
   @type limit :: Leaderboard.Table.limit
 
   @doc """
-  Starts `GenServer` process with link to the current process. The
-  `table_name` must be an atom, based on which ETS leaderboard tables
+  Starts `GenServer` process with link to the current process.
+
+  The `table_name` must be an atom, based on which ETS leaderboard tables
   are created. The `GenServer` process is the owner of the ETS tables.
   """
   @spec start_link(table_name, options) :: on_start
@@ -120,7 +119,7 @@ defmodule Leaderboard do
   end
 
   @doc """
-  Inserts a new record or updates the `score` of an existing record.
+  Inserts a new record or updates the `score` of an existing `key`.
   """
   @spec insert(table_name, score, key) :: :ok
   def insert(table_name, score, key) do
@@ -129,7 +128,7 @@ defmodule Leaderboard do
   end
 
   @doc """
-  Returns the `score` associated with a `key`.
+  Returns a `score` associated with a `key`.
   """
   @spec lookup(table_name, key) :: score | nil
   def lookup(table_name, key) do
@@ -137,13 +136,14 @@ defmodule Leaderboard do
   end
 
   @doc """
-  Returns all the values as defined in `match_spec`. Note that the returned
-  values don't have to be records in form of `{score, key}`. The values are
-  matched using the `match_spec` and ordered in specified `order`.
+  Returns all the values as defined in `match_spec`.
 
-  For example, the `match_spec` to return all the records:
+  The returned values don't have to be records in form of
+  `{score, key}`. The values are matched using the `match_spec` and they
+  are ordered in specified `order`.
 
-    [{{:"$1"}, [], [:"$1"]}]
+  For example, the `match_spec` to return all the records is
+  `[{{:"$1"}, [], [:"$1"]}]`.
 
   """
   @spec match(table_name, match_spec, order) :: [term]
