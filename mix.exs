@@ -1,20 +1,42 @@
 defmodule Leaderboard.Mixfile do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [app: :leaderboard,
-     version: "0.0.1",
+     version: @version,
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps()]
+     description: description(),
+     deps: deps(),
+     docs: docs(),
+     package: package()]
   end
 
   def application do
     [extra_applications: [:logger]]
   end
 
+  defp description do
+    "Leaderboard based on ETS tables"
+  end
+
   defp deps do
-    [{:credo, "~> 0.5", only: [:dev, :test]}]
+    [{:ex_doc, "~> 0.14", only: :dev}]
+  end
+
+  defp docs do
+    [source_url: "https://github.com/jur0/leaderboard",
+     source_ref: "v#{@version}",
+     extras: ["README.md"],
+     main: "Leaderboard"]
+  end
+
+  defp package do
+    [maintainers: ["Juraj Hlista"],
+     licenses: ["MIT"],
+     links: %{"GitHub" => "https://github.com/jur0/leaderboard"}]
   end
 end

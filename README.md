@@ -9,7 +9,7 @@ by adding `leaderboard` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:leaderboard, "~> 0.0.1"}]
+  [{:leaderboard, "~> 0.1"}]
 end
 ```
 
@@ -81,6 +81,6 @@ The ETS tables are `:protected`, so only the `GenServer` process that owns
 them can write. All the other processes are allowed just to read. Read
 operations are not serialised so they can be done in concurrent manner.
 
-## TODO
+## Benchmark
 
-- [ ] benchmarks
+TODO
