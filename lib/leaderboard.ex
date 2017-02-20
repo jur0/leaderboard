@@ -102,6 +102,15 @@ defmodule Leaderboard do
   end
 
   @doc """
+  Deletes all the records.
+  """
+  @spec delete(table_name) :: :ok
+  def delete(table_name) do
+    server = Leaderboard.Table.server_pid(table_name)
+    GenServer.call(server, :delete)
+  end
+
+  @doc """
   Deletes a record based on the `key`.
   """
   @spec delete(table_name, key) :: boolean
@@ -188,6 +197,11 @@ defmodule Leaderboard do
     Leaderboard.Table.insert(score, key, score_table, key_table)
     {:reply, :ok, state}
   end
+  def handle_call(:delete, _from,
+      %{score_table: score_table, key_table: key_table} = state) do
+    Leaderboard.Table.delete(score_table, key_table)
+    {:reply, :ok, state}
+  end
   def handle_call({:delete, key}, _from,
       %{score_table: score_table, key_table: key_table} = state) do
     Leaderboard.Table.delete(key, score_table, key_table)
@@ -228,14 +242,21 @@ defmodule Leaderboard.Table do
   def init_key_table(key_table, server_pid) do
     :ets.new(key_table, [:set, :protected, :named_table,
                            read_concurrency: true])
-    :ets.insert(key_table, {@server_key, server_pid})
+    insert_server_pid(key_table, server_pid)
     key_table
   end
 
   @spec server_pid(key_table) :: pid
   def server_pid(key_table) do
-    [{@server_key, pid}] = :ets.lookup(key_table, @server_key)
-    pid
+    lookup_server_pid(key_table)
+  end
+
+  @spec delete(score_table, key_table) :: true
+  def delete(score_table, key_table) do
+    server_pid = lookup_server_pid(key_table)
+    :ets.delete_all_objects(score_table)
+    :ets.delete_all_objects(key_table)
+    insert_server_pid(key_table, server_pid)
   end
 
   @spec delete(key, score_table, key_table) :: boolean
@@ -285,6 +306,15 @@ defmodule Leaderboard.Table do
   @spec size(key_table) :: non_neg_integer
   def size(key_table) do
     :ets.info(key_table, :size) - 1
+  end
+
+  defp insert_server_pid(key_table, server_pid) do
+    :ets.insert(key_table, {@server_key, server_pid})
+  end
+
+  defp lookup_server_pid(key_table) do
+    [{@server_key, pid}] = :ets.lookup(key_table, @server_key)
+    pid
   end
 
   defp score_table_name(key_table) do

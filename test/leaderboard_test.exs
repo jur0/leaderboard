@@ -20,6 +20,15 @@ defmodule LeaderboardTest do
     assert Leaderboard.size(@table) == 0
   end
 
+  test "delete all" do
+    {:ok, _pid} = Leaderboard.start_link(@table)
+    Leaderboard.insert(@table, {10000, 2}, :foo)
+    Leaderboard.insert(@table, {20000,10}, :bar)
+    assert Leaderboard.size(@table) == 2
+    Leaderboard.delete(@table)
+    assert Leaderboard.size(@table) == 0
+  end
+
   test "insert" do
     {:ok, _pid} = Leaderboard.start_link(@table)
     Leaderboard.insert(@table, 1, :a)
