@@ -71,7 +71,7 @@ The second ETS table called `score_table` is of type `:ordered_set`.
 It stores only keys without any values:
 
 | key            | value |
-| -------------- | ----- |
+| -------------- | :---: |
 | `{score, key}` | -     |
 
 When a new record is inserted into the leaderboard, the record is inserted
