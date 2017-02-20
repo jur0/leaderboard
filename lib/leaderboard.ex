@@ -271,7 +271,7 @@ defmodule Leaderboard.Table do
     end
   end
 
-  @spec insert(term, term, score_table, key_table) :: true
+  @spec insert(score, key, score_table, key_table) :: true
   def insert(score, key, score_table, key_table) do
     # Score table has only key key which is {score, key}. It has type
     # :ordered_set, so all keys must be unique. If just score was in the
@@ -280,7 +280,7 @@ defmodule Leaderboard.Table do
     :ets.insert(key_table, {key, score})
   end
 
-  @spec lookup(key_table, term) :: term | nil
+  @spec lookup(key_table, key) :: score | nil
   def lookup(key_table, key) do
     case :ets.lookup(key_table, key) do
       [{^key, score}] -> score
@@ -294,7 +294,7 @@ defmodule Leaderboard.Table do
     perform_match(score_table, match_spec, order, limit)
   end
 
-  @spec select(key_table, order, limit) :: [term]
+  @spec select(key_table, order, limit) :: [record]
   def select(key_table, order, 1) do
     score_table = score_table_name(key_table)
     perform_single_select(score_table, order)
