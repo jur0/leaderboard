@@ -63,16 +63,16 @@ values:
 The leaderboard is composed of a `GenServer` process and two ETS tables. The
 ETS `key_value` is of type `:set`:
 
-  |  key  |  value  |
-  | ----- | ------- |
-  | `key` | `score` |
+| key   | value   |
+| ----- | ------- |
+| `key` | `score` |
 
 The second ETS table called `score_table` is of type `:ordered_set`.
 It stores only a keys without any values:
 
-  | key            | value |
-  | -------------- | ----- |
-  | `{score, key}` |   -   |
+| key            | value |
+| -------------- | ----- |
+| `{score, key}` | -     |
 
 When a new record is inserted into the leaderboard, the record is inserted
 into both tables. All the writes are serialized via the `GenServer` process.
