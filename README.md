@@ -68,18 +68,18 @@ ETS `key_value` is of type `:set`:
 | `key` | `score` |
 
 The second ETS table called `score_table` is of type `:ordered_set`.
-It stores only a keys without any values:
+It stores only keys without any values:
 
 | key            | value |
 | -------------- | ----- |
 | `{score, key}` | -     |
 
 When a new record is inserted into the leaderboard, the record is inserted
-into both tables. All the writes are serialized via the `GenServer` process.
+into both tables. All the writes are serialised via the `GenServer` process.
 
 The ETS tables are `:protected`, so only the `GenServer` process that owns
 them can write. All the other processes are allowed just to read. Read
-operations are not serialized so they can be done in concurrent manner.
+operations are not serialised so they can be done in concurrent manner.
 
 ## TODO
 
