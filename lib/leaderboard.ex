@@ -54,32 +54,32 @@ defmodule Leaderboard do
   @typedoc """
   Score of a given key
   """
-  @type score :: Leaderboard.Table.score
+  @type score :: term
 
   @typedoc """
   Key associated with a score
   """
-  @type key :: Leaderboard.Table.key
+  @type key :: term
 
   @typedoc """
   Score and key together
   """
-  @type record :: Leaderboard.Table.record
+  @type record :: {score, key}
 
   @typedoc """
   Match specification
   """
-  @type match_spec :: Leaderboard.Table.match_spec
+  @type match_spec :: :ets.match_spec
 
   @typedoc """
   Order of returned records
   """
-  @type order :: Leaderboard.Table.order
+  @type order :: :ascend | :descend
 
   @typedoc """
   The max number of records to return (or all of them)
   """
-  @type limit :: Leaderboard.Table.limit
+  @type limit :: pos_integer | :all
 
   @doc """
   Starts `GenServer` process with link to the current process.
@@ -215,30 +215,12 @@ defmodule Leaderboard.Table do
   @server_key :"$server_pid"
   @match_spec_all [{{:"$1"}, [], [:"$1"]}]
 
-  @type score_table :: atom
-
-  @type key_table :: atom
-
-  @type score :: term
-
-  @type key :: term
-
-  @type record :: {score, key}
-
-  @type match_spec :: :ets.match_spec
-
-  @type order :: :ascend | :descend
-
-  @type limit :: pos_integer | :all
-
-  @spec init_score_table(key_table) :: score_table
   def init_score_table(key_table) do
     table_name = score_table_name(key_table)
     :ets.new(table_name, [:ordered_set, :protected, :named_table,
                           read_concurrency: true])
   end
 
-  @spec init_key_table(key_table, pid) :: key_table
   def init_key_table(key_table, server_pid) do
     :ets.new(key_table, [:set, :protected, :named_table,
                            read_concurrency: true])
@@ -246,12 +228,10 @@ defmodule Leaderboard.Table do
     key_table
   end
 
-  @spec server_pid(key_table) :: pid
   def server_pid(key_table) do
     lookup_server_pid(key_table)
   end
 
-  @spec delete(score_table, key_table) :: true
   def delete(score_table, key_table) do
     server_pid = lookup_server_pid(key_table)
     :ets.delete_all_objects(score_table)
@@ -259,7 +239,6 @@ defmodule Leaderboard.Table do
     insert_server_pid(key_table, server_pid)
   end
 
-  @spec delete(key, score_table, key_table) :: boolean
   def delete(key, score_table, key_table) do
     case :ets.lookup(key_table, key) do
       [{^key, score}] ->
@@ -271,7 +250,6 @@ defmodule Leaderboard.Table do
     end
   end
 
-  @spec insert(score, key, score_table, key_table) :: true
   def insert(score, key, score_table, key_table) do
     # Score table has only key key which is {score, key}. It has type
     # :ordered_set, so all keys must be unique. If just score was in the
@@ -280,7 +258,6 @@ defmodule Leaderboard.Table do
     :ets.insert(key_table, {key, score})
   end
 
-  @spec lookup(key_table, key) :: score | nil
   def lookup(key_table, key) do
     case :ets.lookup(key_table, key) do
       [{^key, score}] -> score
@@ -288,13 +265,11 @@ defmodule Leaderboard.Table do
     end
   end
 
-  @spec match(key_table, match_spec, order, limit) :: [term]
   def match(key_table, match_spec, order, limit) do
     score_table = score_table_name(key_table)
     perform_match(score_table, match_spec, order, limit)
   end
 
-  @spec select(key_table, order, limit) :: [record]
   def select(key_table, order, 1) do
     score_table = score_table_name(key_table)
     perform_single_select(score_table, order)
@@ -303,7 +278,6 @@ defmodule Leaderboard.Table do
     match(key_table, @match_spec_all, order, limit)
   end
 
-  @spec size(key_table) :: non_neg_integer
   def size(key_table) do
     :ets.info(key_table, :size) - 1
   end
