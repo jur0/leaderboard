@@ -9,7 +9,7 @@ by adding `leaderboard` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:leaderboard, "~> 0.1"}]
+  [{:leaderboard, "~> 0.2"}]
 end
 ```
 
