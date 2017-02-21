@@ -1,6 +1,5 @@
 defmodule LeaderboardTest do
-  use ExUnit.Case, async: false
-  doctest Leaderboard
+  use ExUnit.Case, async: true
 
   @table Leaderboard.Test
 
@@ -9,10 +8,10 @@ defmodule LeaderboardTest do
     assert 0 == Leaderboard.size(@table)
   end
 
-  test "delete" do
+  test "delete single" do
     {:ok, _pid} = Leaderboard.start_link(@table)
     Leaderboard.insert(@table, {1.9, 2}, :foo)
-    Leaderboard.insert(@table, {1.11,10}, :bar)
+    Leaderboard.insert(@table, {1.11, 10}, :bar)
     assert Leaderboard.delete(@table, "unknown_value") == :ok
     assert Leaderboard.size(@table) == 2
     assert Leaderboard.delete(@table, :foo) == :ok
@@ -22,10 +21,11 @@ defmodule LeaderboardTest do
 
   test "delete all" do
     {:ok, _pid} = Leaderboard.start_link(@table)
-    Leaderboard.insert(@table, {10000, 2}, :foo)
-    Leaderboard.insert(@table, {20000,10}, :bar)
+    assert Leaderboard.delete_all(@table) == :ok
+    Leaderboard.insert(@table, {1, 2}, :foo)
+    Leaderboard.insert(@table, {1, 10}, :bar)
     assert Leaderboard.size(@table) == 2
-    Leaderboard.delete_all(@table)
+    assert Leaderboard.delete_all(@table) == :ok
     assert Leaderboard.size(@table) == 0
   end
 
