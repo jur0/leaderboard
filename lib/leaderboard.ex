@@ -115,7 +115,7 @@ defmodule Leaderboard do
   @spec delete_all(table_name, timeout) :: :ok
   def delete_all(table_name, timeout \\ 5000) do
     server = Leaderboard.Table.server_pid(table_name)
-    GenServer.call(server, :delete, timeout)
+    GenServer.call(server, :delete_all, timeout)
   end
 
   @doc """
@@ -197,14 +197,14 @@ defmodule Leaderboard do
     Leaderboard.Table.insert(score, key, score_table, key_table)
     {:reply, :ok, state}
   end
-  def handle_call(:delete, _from,
-      %{score_table: score_table, key_table: key_table} = state) do
-    Leaderboard.Table.delete(score_table, key_table)
-    {:reply, :ok, state}
-  end
   def handle_call({:delete, key}, _from,
       %{score_table: score_table, key_table: key_table} = state) do
     Leaderboard.Table.delete(key, score_table, key_table)
+    {:reply, :ok, state}
+  end
+  def handle_call(:delete_all, _from,
+      %{score_table: score_table, key_table: key_table} = state) do
+    Leaderboard.Table.delete_all(score_table, key_table)
     {:reply, :ok, state}
   end
 end
@@ -232,13 +232,6 @@ defmodule Leaderboard.Table do
     lookup_server_pid(key_table)
   end
 
-  def delete(score_table, key_table) do
-    server_pid = lookup_server_pid(key_table)
-    :ets.delete_all_objects(score_table)
-    :ets.delete_all_objects(key_table)
-    insert_server_pid(key_table, server_pid)
-  end
-
   def delete(key, score_table, key_table) do
     case :ets.lookup(key_table, key) do
       [{^key, score}] ->
@@ -248,6 +241,13 @@ defmodule Leaderboard.Table do
       [] ->
           false
     end
+  end
+
+  def delete_all(score_table, key_table) do
+    server_pid = lookup_server_pid(key_table)
+    :ets.delete_all_objects(score_table)
+    :ets.delete_all_objects(key_table)
+    insert_server_pid(key_table, server_pid)
   end
 
   def insert(score, key, score_table, key_table) do
