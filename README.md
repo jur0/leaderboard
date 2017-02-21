@@ -61,7 +61,7 @@ values:
 ## Implementation
 
 The leaderboard is composed of a `GenServer` process and two ETS tables. The
-ETS `key_value` is of type `:set`:
+ETS `key_table` is of type `:set`:
 
 | key   | value   |
 | ----- | ------- |
