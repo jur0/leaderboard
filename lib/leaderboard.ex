@@ -251,9 +251,8 @@ defmodule Leaderboard.Table do
   end
 
   def insert(score, key, score_table, key_table) do
-    # Score table has only key key which is {score, key}. It has type
-    # :ordered_set, so all keys must be unique. If just score was in the
-    # key there couldn't be 2 and more records with the same score.
+    # score_table has just key which is {score, key}, there is no value
+    # associated with the key.
     :ets.insert(score_table, {{score, key}})
     :ets.insert(key_table, {key, score})
   end
