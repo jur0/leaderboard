@@ -25,7 +25,7 @@ defmodule LeaderboardTest do
     Leaderboard.insert(@table, {10000, 2}, :foo)
     Leaderboard.insert(@table, {20000,10}, :bar)
     assert Leaderboard.size(@table) == 2
-    Leaderboard.delete(@table)
+    Leaderboard.delete_all(@table)
     assert Leaderboard.size(@table) == 0
   end
 

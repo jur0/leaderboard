@@ -101,30 +101,30 @@ defmodule Leaderboard do
   end
 
   @doc """
-  Deletes all the records.
+  Deletes a record based on the `key`.
   """
-  @spec delete(table_name) :: :ok
-  def delete(table_name) do
+  @spec delete(table_name, key, timeout) :: boolean
+  def delete(table_name, key, timeout \\ 5000) do
     server = Leaderboard.Table.server_pid(table_name)
-    GenServer.call(server, :delete)
+    GenServer.call(server, {:delete, key}, timeout)
   end
 
   @doc """
-  Deletes a record based on the `key`.
+  Deletes all the records.
   """
-  @spec delete(table_name, key) :: boolean
-  def delete(table_name, key) do
+  @spec delete_all(table_name, timeout) :: :ok
+  def delete_all(table_name, timeout \\ 5000) do
     server = Leaderboard.Table.server_pid(table_name)
-    GenServer.call(server, {:delete, key})
+    GenServer.call(server, :delete, timeout)
   end
 
   @doc """
   Inserts a new record or updates the `score` of an existing `key`.
   """
-  @spec insert(table_name, score, key) :: :ok
-  def insert(table_name, score, key) do
+  @spec insert(table_name, score, key, timeout) :: :ok
+  def insert(table_name, score, key, timeout \\ 5000) do
     server = Leaderboard.Table.server_pid(table_name)
-    GenServer.call(server, {:insert, score, key})
+    GenServer.call(server, {:insert, score, key}, timeout)
   end
 
   @doc """
