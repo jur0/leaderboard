@@ -148,7 +148,8 @@ defmodule Leaderboard do
   """
   @spec match(table_name, match_spec, order) :: [term]
   def match(table_name, match_spec, order) do
-    Leaderboard.Table.match(table_name, match_spec, order, :all)
+    score_table = Leaderboard.Table.score_table_name(table_name)
+    Leaderboard.Table.match(score_table, match_spec, order, :all)
   end
 
   @doc """
@@ -157,7 +158,8 @@ defmodule Leaderboard do
   """
   @spec match(table_name, match_spec, order, limit) :: [term]
   def match(table_name, match_spec, order, limit) do
-    Leaderboard.Table.match(table_name, match_spec, order, limit)
+    score_table = Leaderboard.Table.score_table_name(table_name)
+    Leaderboard.Table.match(score_table, match_spec, order, limit)
   end
 
   @doc """
@@ -165,7 +167,8 @@ defmodule Leaderboard do
   """
   @spec select(table_name, order) :: [record]
   def select(table_name, order) do
-    Leaderboard.Table.select(table_name, order, :all)
+    score_table = Leaderboard.Table.score_table_name(table_name)
+    Leaderboard.Table.select(score_table, order, :all)
   end
 
   @doc """
@@ -174,7 +177,8 @@ defmodule Leaderboard do
   """
   @spec select(table_name, order, limit) :: [record]
   def select(table_name, order, limit) do
-    Leaderboard.Table.select(table_name, order, limit)
+    score_table = Leaderboard.Table.score_table_name(table_name)
+    Leaderboard.Table.select(score_table, order, limit)
   end
 
   @doc """
@@ -194,12 +198,12 @@ defmodule Leaderboard do
   def handle_call({:insert, score, key}, _from,
       %{score_table: score_table, key_table: key_table} = state) do
     Leaderboard.Table.delete(key, score_table, key_table)
-    Leaderboard.Table.insert(score, key, score_table, key_table)
+    Leaderboard.Table.insert(score_table, key_table, score, key)
     {:reply, :ok, state}
   end
   def handle_call({:delete, key}, _from,
       %{score_table: score_table, key_table: key_table} = state) do
-    Leaderboard.Table.delete(key, score_table, key_table)
+    Leaderboard.Table.delete(score_table, key_table, key)
     {:reply, :ok, state}
   end
   def handle_call(:delete_all, _from,
@@ -232,7 +236,12 @@ defmodule Leaderboard.Table do
     lookup_server_pid(key_table)
   end
 
-  def delete(key, score_table, key_table) do
+  def score_table_name(key_table) do
+    # Append "Score" to key_table
+    Module.concat(key_table, "Score")
+  end
+
+  def delete(score_table, key_table, key) do
     case :ets.lookup(key_table, key) do
       [{^key, score}] ->
           :ets.delete(key_table, key)
@@ -250,7 +259,7 @@ defmodule Leaderboard.Table do
     insert_server_pid(key_table, server_pid)
   end
 
-  def insert(score, key, score_table, key_table) do
+  def insert(score_table, key_table, score, key) do
     # score_table has just key which is {score, key}, there is no value
     # associated with the key.
     :ets.insert(score_table, {{score, key}})
@@ -264,17 +273,39 @@ defmodule Leaderboard.Table do
     end
   end
 
-  def match(key_table, match_spec, order, limit) do
-    score_table = score_table_name(key_table)
-    perform_match(score_table, match_spec, order, limit)
+  def match(score_table, match_spec, :descend, :all) do
+    score_table
+    |> :ets.select_reverse(match_spec)
+    |> match_result()
+  end
+  def match(score_table, match_spec, :descend, limit) do
+    score_table
+    |> :ets.select_reverse(match_spec, limit)
+    |> match_result()
+  end
+  def match(score_table, match_spec, :ascend, :all) do
+    score_table
+    |> :ets.select(match_spec)
+    |> match_result()
+  end
+  def match(score_table, match_spec, :ascend, limit) do
+    score_table
+    |> :ets.select(match_spec, limit)
+    |> match_result()
   end
 
-  def select(key_table, order, 1) do
-    score_table = score_table_name(key_table)
-    perform_single_select(score_table, order)
+  def select(score_table, :descend, 1) do
+    score_table
+    |> :ets.last()
+    |> single_select_result()
   end
-  def select(key_table, order, limit) do
-    match(key_table, @match_spec_all, order, limit)
+  def select(score_table, :ascend, 1) do
+    score_table
+    |> :ets.first()
+    |> single_select_result()
+  end
+  def select(score_table, order, limit) do
+    match(score_table, @match_spec_all, order, limit)
   end
 
   def size(key_table) do
@@ -290,45 +321,8 @@ defmodule Leaderboard.Table do
     pid
   end
 
-  defp score_table_name(key_table) do
-    # Append "Score" to key_table
-    Module.concat(key_table, "Score")
-  end
-
-  defp perform_single_select(table, :descend) do
-    table
-    |> :ets.last()
-    |> single_select_result()
-  end
-  defp perform_single_select(table, :ascend) do
-    table
-    |> :ets.first()
-    |> single_select_result()
-  end
-
   defp single_select_result({_score, _key} = record), do: [record]
   defp single_select_result(_), do: []
-
-  defp perform_match(table, match_spec, :descend, :all) do
-    table
-    |> :ets.select_reverse(match_spec)
-    |> match_result()
-  end
-  defp perform_match(table, match_spec, :descend, limit) do
-    table
-    |> :ets.select_reverse(match_spec, limit)
-    |> match_result()
-  end
-  defp perform_match(table, match_spec, :ascend, :all) do
-    table
-    |> :ets.select(match_spec)
-    |> match_result()
-  end
-  defp perform_match(table, match_spec, :ascend, limit) do
-    table
-    |> :ets.select(match_spec, limit)
-    |> match_result()
-  end
 
   defp match_result({records, _cont}), do: records
   defp match_result(records) when is_list(records), do: records
