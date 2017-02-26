@@ -203,8 +203,8 @@ defmodule Leaderboard do
   end
   def handle_call({:delete, key}, _from,
       %{score_table: score_table, key_table: key_table} = state) do
-    Leaderboard.Table.delete(score_table, key_table, key)
-    {:reply, :ok, state}
+    reply = Leaderboard.Table.delete(score_table, key_table, key)
+    {:reply, reply, state}
   end
   def handle_call(:delete_all, _from,
       %{score_table: score_table, key_table: key_table} = state) do

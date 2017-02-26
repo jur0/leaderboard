@@ -12,10 +12,10 @@ defmodule LeaderboardTest do
     {:ok, _pid} = Leaderboard.start_link(@table)
     Leaderboard.insert(@table, {1.9, 2}, :foo)
     Leaderboard.insert(@table, {1.11, 10}, :bar)
-    assert Leaderboard.delete(@table, "unknown_value") == :ok
+    assert Leaderboard.delete(@table, "unknown_value") == :false
     assert Leaderboard.size(@table) == 2
-    assert Leaderboard.delete(@table, :foo) == :ok
-    assert Leaderboard.delete(@table, :bar) == :ok
+    assert Leaderboard.delete(@table, :foo) == :true
+    assert Leaderboard.delete(@table, :bar) == :true
     assert Leaderboard.size(@table) == 0
   end
 
