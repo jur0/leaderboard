@@ -24,7 +24,8 @@ defmodule Leaderboard.Mixfile do
   end
 
   defp deps do
-    [{:ex_doc, "~> 0.14", only: :dev}]
+    [{:ex_doc, "~> 0.14", only: :dev},
+     {:benchfella, "~> 0.3.0"}]
   end
 
   defp docs do

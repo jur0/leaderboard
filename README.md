@@ -81,6 +81,16 @@ The ETS tables are `:protected`, so only the `GenServer` process that owns
 them can write. All the other processes are allowed just to read. Read
 operations are not serialised so they can be done in concurrent manner.
 
-## Benchmark
+## Benchmarks
 
-TODO
+The `score_table` is `:ordered_set`. With the size of the table also
+increases the time needed for insert operation:
+
+```
+## LeaderboardBench
+benchmark name                   iterations   average time
+Insert to table of size 1000         200000   8.42 µs/op
+Insert to table of size 10000        200000   9.37 µs/op
+Insert to table of size 100000       200000   10.06 µs/op
+Insert to table of size 1000000      100000   10.55 µs/op
+```
