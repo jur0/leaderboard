@@ -1,5 +1,8 @@
 # Leaderboard
 
+[![Travis](https://travis-ci.org/jur0/leaderboard.svg?branch=master)](https://travis-ci.org/jur0/leaderboard)
+[![Hex.pm](https://img.shields.io/hexpm/v/leaderboard.svg)](https://hex.pm/packages/leaderboard)
+
 Leaderboard (rank table) implementation using ETS tables.
 
 ## Installation
