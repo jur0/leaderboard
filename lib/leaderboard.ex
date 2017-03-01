@@ -227,7 +227,7 @@ defmodule Leaderboard.Table do
 
   def init_key_table(key_table, server_pid) do
     :ets.new(key_table, [:set, :protected, :named_table,
-                           read_concurrency: true])
+                         read_concurrency: true])
     insert_server_pid(key_table, server_pid)
     key_table
   end
